@@ -96,13 +96,28 @@ class Purchases(models.Model):
         menu_item; Foreign key that establishes a link to the MenuItem model to properly refenece in logging 
         date (datetime): Timestamp of the purchase.
         quantity (int): Number of times the item was bought.
-
+        revenue (decimal): Amount of sales made
+        cost (decimal): amount of costs for ingredients used
+        profit (decimal): the net of the difference of proft minus cost
     """
     menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
     # when purchase is made, get the current date and time it was placed
     date = models.DateTimeField(auto_now_add=True)
     # chat: Tracks how many items were bought.
     quantity  = models.PositiveIntegerField(default=1)
+    cost = models.DecimalField(decimal_places=2, max_digits=6, default=0)
+    revenue = models.DecimalField(decimal_places=2, max_digits=10, default=0)
+    
+    # @property allows to access the method like an attribute (ex. purchase.profit rather than purchase.profit())
+    # usage for @property:
+        # When you need to calculate something dynamically instead of storing it, lets you dynamically compute values based on other attributes.
+        # When an attribute depends on other fields (like profit = revenue - cost).
+        # When you want cleaner, more intuitive syntax in your code.
+        # Future-Proofing: You can change the internal logic without affecting how it's accessed.
+    @property
+    def profit(self):
+        return f"${self.revenue - self.cost}"
+
     def __str__(self):
         """Returns a string representation of the Purchase made for a menu item, the cost, and the date placed."""
         # self.menu_item.menu_item_name, accesses the menu_item object's menu_item_name field to get the name of the item
