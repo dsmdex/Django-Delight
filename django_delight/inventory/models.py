@@ -6,9 +6,10 @@ class Ingredient(models.Model):
     Represents an Ingredient contained within the restaurant inventory.
 
     Attributes:
-        ingredient_name; represents the name of the ingredient, char type
-        inventory_of_ingredient; represents the amount available for use, int type
-        ingredient_price; represents the price for the ingredient, decimal type
+        ingredient_name: represents the name of the ingredient, char type
+        inventory_of_ingredient: represents the amount available for use, int type
+        ingredient_price: represents the price for the ingredient per unit, decimal type
+        unit: way of measuring an amount of an ingredient needed (units in grams, ounces, pieces, etc)
     """
     # corresponding fields related to the model
     # chat: ingredient_name should be unique=True to avoid duplicate names.
@@ -19,7 +20,7 @@ class Ingredient(models.Model):
 
     def __str__(self):
         """Returns a string representation of the Ingredient object"""
-        return f"Ingredient: {self.ingredient_name}"
+        return f"{self.ingredient_name}"
     
 
 class MenuItem(models.Model):
@@ -38,10 +39,10 @@ class MenuItem(models.Model):
 
     def __str__(self):
         """Returns string representation of a menu item and the price for that item."""
-        return f"Menu item: {self.menu_item_name} - ${self.menu_item_price}"
+        return f"{self.menu_item_name} - ${self.menu_item_price}"
     
 
-class RecipeRequirements(models.Model):
+class RecipeRequirement(models.Model):
     """
     Represents an ingredient that is required to be used as part of recipe for a menu item.
 
@@ -51,13 +52,33 @@ class RecipeRequirements(models.Model):
         ingredient; a foreign key to Ingredient that establishes a link with a menu item, Ingredient type
         menu_item; a foreign key to MenuItems that establishes a link with an Ingredient, MenuItem type
         quantity; represents the amount of an ingredient that is required to be included for a menu item, decimal type
+        unit: a choice of unit that reprsents the associated measurement for an ingredient needed for a recipe
+        custom_unt: a fallback for the choice of unit if standard terms don't describe the amount well
     """
     # corresponding fields related to the model
     # on_delete keyword argument to ensure deletion of either object of either model will remove relation to this model
-    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
     menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
     # chat: quantity > 0 should be enforced at the form level.
     quantity = models.DecimalField(max_digits=6, decimal_places=2)
+    # custom unit for non-standard measurements (slices, batch, heads, etc)
+    custom_unit = models.CharField(max_length=50, null=True, blank=True)
+
+    # list of unit measurements
+    UNIT_LIST_OF_CHOICES = [
+        ('grams', "g"),
+        ('pounds', 'lbs'),
+        ('cup', 'c'),
+        ('kilogram', 'kg'),
+        ('tablespoon', 'tbsp'),
+        ('teaspoon', 'tsp'),
+        ('millimeter', 'ml'),
+        ('ounces', 'oz'),
+        ('other', '-')
+    ]
+    # chat: implement a unit field to give the ability for a user to select what measurement is associated with the ingredient
+    unit = models.CharField(max_length=10, choices=UNIT_LIST_OF_CHOICES, null=True, blank=True)
+
     class Meta:
         # Need a unique constraint on (ingredient, menu_item) to prevent duplicates entries.
         unique_together = ('ingredient', 'menu_item')
@@ -65,7 +86,7 @@ class RecipeRequirements(models.Model):
     def __str__(self):
         """Returns a string representation of a Recipe requirement needed for a specific Menu item, 
         and the quantity needed for that item"""
-        return f"The menu item: {self.menu_item}, requires {self.ingredient}, with a quantity of {self.quantity}."
+        return f"{self.menu_item.menu_item_name}: {self.ingredient}"
 
 class Purchases(models.Model):
     """
@@ -84,4 +105,5 @@ class Purchases(models.Model):
     quantity  = models.PositiveIntegerField(default=1)
     def __str__(self):
         """Returns a string representation of the Purchase made for a menu item, the cost, and the date placed."""
-        return f"{self.quantity} x {self.menu_item.name} on {self.date.strftime('%Y-%m-%d %H:%M:%S')}"
+        # self.menu_item.menu_item_name, accesses the menu_item object's menu_item_name field to get the name of the item
+        return f"{self.quantity} x {self.menu_item.menu_item_name} on {self.date.strftime('%Y-%m-%d %H:%M:%S')}"
